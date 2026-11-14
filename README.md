@@ -20,6 +20,7 @@ Non occorre eseguire `npm install`: il progetto non usa dipendenze. I caratteri 
 | WASD o frecce | Movimento libero in tutte le direzioni |
 | Clic / tocco sul terreno | Raggiungi il punto aggirando gli ostacoli |
 | Spazio | Salta le briciole e le muffe |
+| Q | Tira un pugno nella direzione dell’ultimo movimento |
 | E oppure clic sulla stazione | Costruisci/interagisci con una stazione vicina |
 | Esc / pulsante pausa | Pausa e guida |
 | Torna al rifugio | Ritorno rapido al sicuro |
@@ -32,6 +33,7 @@ Su smartphone sono disponibili anche pulsanti touch. La visuale dall’alto cons
 - Fragola disegnata e animata, movimento normalizzato in diagonale, collisioni e ricerca del percorso per il movimento con clic.
 - Zona sicura con recupero della freschezza; cucina con pericolo crescente in base alla distanza dal frigo.
 - Semi e gocce da raccogliere, risorse che ricompaiono dopo 40 secondi di gioco e muffe che inseguono il personaggio.
+- Pugno con Q (o pulsante touch): colpisce davanti a Fragolina, respinge e stordisce le muffe. Tre colpi le sconfiggono; ricompaiono dopo 20 secondi di gioco. Una breve pausa di 0,45 secondi separa i pugni. Gli ostacoli bloccano i colpi.
 - Vivaio costruibile con 5 semi: genera un seme ogni 30 secondi di gioco attivo.
 - Fontana costruibile con 8 gocce: aumenta la rigenerazione al rifugio.
 - Se si esaurisce la freschezza si torna al frigorifero, perdendo il 30% dei semi disponibili (arrotondamento a favore della perdita).

@@ -7,7 +7,8 @@
   const STORAGE = 'frutta-e-verdura-v1';
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  const player = { x: 490, y: 590, health: 100, jump: 0, invulnerable: 0, walking: false, facing: 1 };
+  const player = { x: 490, y: 590, health: 100, jump: 0, invulnerable: 0, walking: false, facing: 1,
+    aimX: 1, aimY: 0, punch: 0, punchCooldown: 0, punchX: 1, punchY: 0, punchHit: false };
   const stations = [
     { x: 345, y: 796, name: 'vivaio', cost: 5, currency: 'seeds', built: false },
     { x: 615, y: 796, name: 'fontana', cost: 8, currency: 'drops', built: false }
@@ -56,7 +57,7 @@
     { x: 1560, y: 940, ox: 1560, oy: 940, phase: 2, r: 32, speed: 74 },
     { x: 1860, y: 500, ox: 1860, oy: 500, phase: 4, r: 30, speed: 86 },
     { x: 2160, y: 790, ox: 2160, oy: 790, phase: 1, r: 36, speed: 95 }
-  ];
+  ].map(e => ({ ...e, health: 3, stun: 0, respawn: 0, vx: 0, vy: 0 }));
   const safe = () => player.x < 785 && player.x > 155 && player.y > 180 && player.y < 955;
   function notify(message) {
     $('toast').textContent = message;
@@ -123,10 +124,32 @@
     if (canStand(player.x+sx,player.y,jumping)) player.x+=sx;
     if (canStand(player.x,player.y+sy,jumping)) player.y+=sy;
     player.walking=true;
+    player.aimX=dx/length;player.aimY=dy/length;
     if (dx) player.facing = dx>0 ? 1 : -1;
   }
   function jumpHeight() { return player.jump>0 ? Math.sin((1-player.jump/.66)*Math.PI)*68 : 0; }
   function jump() { if (!paused && !player.jump) { player.jump=.66; burst(player.x,player.y,'#dce4cc',5); } }
+  function punch() {
+    if(paused || player.punchCooldown>0) return;
+    player.punch=.28;player.punchCooldown=.45;player.punchHit=false;
+    player.punchX=player.aimX;player.punchY=player.aimY;
+  }
+  function punchImpact() {
+    if(jumpHeight()>30) return;
+    for(const e of enemies){
+      if(e.health<=0) continue;
+      const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);
+      // A short cone in the last movement direction; walls shield enemies.
+      if(d>65+e.r || (d>1 && (dx*player.punchX+dy*player.punchY)/d<.4)) continue;
+      let blocked=false;
+      for(let step=8;step<d;step+=8)if(!canStand(player.x+dx/d*step,player.y+dy/d*step,false,3)){blocked=true;break;}
+      if(blocked) continue;
+      e.health--;e.stun=.65;
+      e.vx=(d>1?dx/d:player.punchX)*420;e.vy=(d>1?dy/d:player.punchY)*420;
+      burst(e.x,e.y,'#e9d494',14);
+      if(e.health===0){e.respawn=20;e.vx=0;e.vy=0;burst(e.x,e.y,'#a5b789',20);notify('Muffa sconfitta! Il passaggio è libero per un po’.');}
+    }
+  }
   function burst(x,y,color,n=12) {
     for (let i=0;i<n;i++) { const a=i/n*Math.PI*2; particles.push({x,y,vx:Math.cos(a)*(25+i*4),vy:Math.sin(a)*(25+i*3)-20,life:.7,max:.7,color}); }
   }
@@ -143,11 +166,11 @@
     save(); updateHUD();
   }
   function returnHome(exhausted = false) {
-    player.x=490; player.y=590; player.jump=0; player.invulnerable=2;
+    player.x=490; player.y=590; player.jump=0; player.invulnerable=2;player.punch=0;player.punchCooldown=0;
     path=[];destination=null;pendingStation=null;
     if (exhausted) { seeds=Math.floor(seeds*.7);player.health=35;save();notify('Il frigo ti ha salvata! Hai perso una parte dei semi. Riposati un momento.'); }
     else notify('Bentornata a casa. Qui puoi riprendere fiato.');
-    enemies.forEach(e=>{e.x=e.ox;e.y=e.oy;});
+    enemies.forEach(e=>{e.x=e.ox;e.y=e.oy;e.vx=0;e.vy=0;});
     updateHUD();
   }
   function update(dt) {
@@ -170,11 +193,27 @@
       else move(next.x-player.x,next.y-player.y,dt);
     } else {player.walking=false;destination=null;}
     if (pendingStation && dist(player,pendingStation)<140) {interact(pendingStation);pendingStation=null;path=[];}
+    player.punchCooldown=Math.max(0,player.punchCooldown-dt);
+    player.punch=Math.max(0,player.punch-dt);
+    if(player.punch>0 && player.punch<=.20 && !player.punchHit){player.punchHit=true;punchImpact();}
     const isSafe=safe(), depth=clamp((player.x-800)/1650,0,1);
     if (isSafe) player.health=Math.min(100,player.health+dt*(stations[1].built?17:8));
     else player.health-=dt*(.65+depth*2.4);
     if (wasSafe!==isSafe) {notify(isSafe?'Sei al sicuro. La tua freschezza si rigenera.':'Fuori fa caldo… raccogli i semi e fai attenzione alla muffa.');wasSafe=isSafe;}
     for (const e of enemies) {
+      if(e.health<=0){
+        e.respawn=Math.max(0,e.respawn-dt);
+        if(e.respawn===0){e.health=3;e.x=e.ox;e.y=e.oy;e.stun=0;}
+        continue;
+      }
+      if(e.stun>0){
+        e.stun=Math.max(0,e.stun-dt);
+        const nx=clamp(e.x+e.vx*dt,900,WORLD.w-50),ny=e.y+e.vy*dt;
+        if(canStand(nx,e.y,false,e.r*.65))e.x=nx;
+        if(canStand(e.x,ny,false,e.r*.65))e.y=ny;
+        e.vx*=Math.exp(-9*dt);e.vy*=Math.exp(-9*dt);
+        continue;
+      }
       let tx=e.ox+Math.sin(clock*.32+e.phase)*95, ty=e.oy+Math.cos(clock*.4+e.phase)*100;
       if (!isSafe && dist(player,e)<280) {tx=player.x;ty=player.y;}
       const d=Math.hypot(tx-e.x,ty-e.y);
@@ -184,7 +223,7 @@
         if (canStand(e.x,ny,false,e.r*.65)) e.y=ny;
       }
       if (!isSafe && jumpHeight()<28 && !player.invulnerable && dist(player,e)<e.r+17) {
-        player.health-=15;player.invulnerable=1.5;burst(player.x,player.y,'#dc7860');notify('Ahi, la muffa! Saltala con SPAZIO o torna al fresco.');
+        player.health-=15;player.invulnerable=1.5;burst(player.x,player.y,'#dc7860');notify('Ahi, la muffa! Difenditi con Q, saltala o torna al fresco.');
       }
     }
     for (const item of loot) {
@@ -357,6 +396,18 @@
     ctx.beginPath();ctx.arc(player.facing,0,4,.15,Math.PI-.15);ctx.strokeStyle='#8a4b3c';ctx.lineWidth=1.5;ctx.stroke();
     for(let i=0;i<5;i++)leaf(0,-25,13,(i-2)*.72,'#698c55');leaf(1,-26,12,.2,'#82a563');
     line(0,-27,2,-42,'#597b49',3);
+    if(player.punch>0){
+      const reach=Math.sin((1-player.punch/.28)*Math.PI),dx=player.punchX,dy=player.punchY;
+      const handX=dx*(25+reach*38),handY=dy*(25+reach*38)-4;
+      line(dx*17,dy*17-4,handX,handY,'#c96a54',6);
+      ellipse(handX,handY,12,10,'#f1b18a');
+      round(handX-8,handY-8,15,13,4,'#f6c69e','#cb876b',1.5);
+      line(handX-3,handY-7,handX-3,handY-2,'#dba185',1);
+      line(handX+2,handY-7,handX+2,handY-2,'#dba185',1);
+      ctx.save();ctx.translate(handX,handY);ctx.rotate(Math.atan2(dy,dx));
+      for(const offset of [-.6,0,.6])line(17,offset*18,23+reach*9,offset*24,'#fff2c8',2);
+      ctx.restore();
+    }
     ctx.restore();
     if(safe()) {label('Fragolina',x,y-z-57,10,'#6b8963');ellipse(x,y-z-48,2,2,'#91ae7b');}
   }
@@ -368,6 +419,8 @@
     for(let i=0;i<5;i++)ellipse(Math.cos(i*2)*e.r*.5,Math.sin(i*2)*e.r*.35,3,2,'#c3cca6');
     ellipse(-7,1,2.5,3.5,'#667554');ellipse(7,1,2.5,3.5,'#667554');line(-10,-6,-4,-4,'#788760',2);line(4,-4,10,-6,'#788760',2);
     ctx.beginPath();ctx.arc(0,12,4,Math.PI,Math.PI*2);ctx.strokeStyle='#77855e';ctx.lineWidth=1.5;ctx.stroke();
+    if(e.health<3){round(-19,-e.r-14,38,4,2,'#c8cbb0');round(-19,-e.r-14,38*e.health/3,4,2,'#7f9368');}
+    if(e.stun>0)label('✦',0,-e.r-20,14,'#d1ab64');
     ctx.restore();
   }
   function render() {
@@ -379,7 +432,7 @@
     if(destination){ctx.save();ctx.setLineDash([3,9]);ctx.beginPath();ctx.moveTo(player.x,player.y);for(const p of path)ctx.lineTo(p.x,p.y);ctx.strokeStyle='#8ba57866';ctx.lineWidth=2;ctx.stroke();ctx.restore();}
     for(const r of ripples){ctx.globalAlpha=r.life/.6;ctx.beginPath();ctx.ellipse(r.x,r.y,(1-r.life/.6)*22+5,(1-r.life/.6)*13+3,0,0,Math.PI*2);ctx.strokeStyle='#8aa071';ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;}
     for(const item of loot)if(item.active){const b=Math.sin(clock*2.5+item.phase)*3;ellipse(item.x,item.y+9,13,5,'#a48c5720');ellipse(item.x,item.y,18,18,item.type==='seed'?'#fff0bc44':'#d3f2e63a');if(item.type==='seed')seed(item.x,item.y-3+b);else water(item.x,item.y-3+b,.8);}
-    const actors=[...enemies.map(e=>({y:e.y,draw:()=>mold(e)})),{y:player.y,draw:strawberry}];actors.sort((a,b)=>a.y-b.y).forEach(a=>a.draw());
+    const actors=[...enemies.filter(e=>e.health>0).map(e=>({y:e.y,draw:()=>mold(e)})),{y:player.y,draw:strawberry}];actors.sort((a,b)=>a.y-b.y).forEach(a=>a.draw());
     for(const p of particles){ctx.globalAlpha=p.life/p.max;ellipse(p.x,p.y,3,3,p.color);}ctx.globalAlpha=1;
     if(!safe()&&player.health<30){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=`rgba(189,94,65,${.05+.025*Math.sin(clock*4)})`;ctx.fillRect(0,0,view.w,view.h);}
     renderMap();
@@ -391,7 +444,7 @@
     mc.fillStyle='#d5e1cd';mc.fillRect(175*sx,210*sy,590*sx,710*sy);
     mc.fillStyle='#c2ae88';solids.filter(s=>s.x>900&&s.high).forEach(s=>mc.fillRect(s.x*sx,s.y*sy,s.w*sx,s.h*sy));
     mc.fillStyle='#c7aa68';loot.filter(i=>i.active).forEach(i=>{mc.beginPath();mc.arc(i.x*sx,i.y*sy,1.2,0,Math.PI*2);mc.fill();});
-    mc.fillStyle='#9ba77d';enemies.forEach(e=>{mc.beginPath();mc.arc(e.x*sx,e.y*sy,2,0,Math.PI*2);mc.fill();});
+    mc.fillStyle='#9ba77d';enemies.filter(e=>e.health>0).forEach(e=>{mc.beginPath();mc.arc(e.x*sx,e.y*sy,2,0,Math.PI*2);mc.fill();});
     mc.beginPath();mc.arc(player.x*sx,player.y*sy,3,0,Math.PI*2);mc.fillStyle='#df7966';mc.fill();mc.strokeStyle='#fff9e7';mc.lineWidth=1;mc.stroke();
     mc.strokeStyle='#91a18366';mc.lineWidth=.7;mc.strokeRect((view.x-view.w/view.zoom/2)*sx,(view.y-view.h/view.zoom/2)*sy,view.w/view.zoom*sx,view.h/view.zoom*sy);
   }
@@ -429,6 +482,7 @@
       event.preventDefault();keys.add(key);if(key===' '&&!event.repeat)jump();
     }
     if(key==='e'&&!event.repeat)interact();
+    if(key==='q'){event.preventDefault();if(!event.repeat)punch();}
   });
   window.addEventListener('keyup',event=>keys.delete(event.key.toLowerCase()));
   window.addEventListener('blur',()=>{if(!paused)setPause(true);});
@@ -443,6 +497,7 @@
   $('cancel-reset').onclick=()=>{$('reset-confirm').hidden=true;};
   $('confirm-reset').onclick=()=>{
     seeds=0;drops=0;totalSeeds=0;nurseryTimer=0;stations.forEach(s=>s.built=false);loot.forEach(i=>{i.active=true;i.respawn=0;});
+    enemies.forEach(e=>{e.health=3;e.stun=0;e.respawn=0;});
     save();player.health=100;returnHome();$('reset-confirm').hidden=true;setPause(false);notify('Una nuova avventura. Ogni piccolo seme conta.');
   };
   document.querySelectorAll('[data-key]').forEach(button=>{
@@ -451,6 +506,7 @@
     button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);button.addEventListener('lostpointercapture',release);
   });
   $('touch-jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});
+  $('touch-punch').addEventListener('pointerdown',e=>{e.preventDefault();punch();});
   new ResizeObserver(resize).observe(canvas);
   function frame(time){const dt=Math.min((time-previous)/1000,.033);previous=time;if(!paused)update(dt);render();requestAnimationFrame(frame);}
   resize();updateHUD();requestAnimationFrame(frame);
