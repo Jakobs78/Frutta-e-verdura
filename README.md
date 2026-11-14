@@ -1,68 +1,100 @@
-# Frutta e verdura
+# Frutta e verdura · Edizione Germoglio 0.2
 
-Un prototipo 2D per browser: Fragolina esplora la cucina e trasforma un frigorifero quasi vuoto nel suo rifugio.
+Avventura single player in **3D reale**, pensata per bambini di 10–12 anni. Fragolina esplora un mondo in miniatura, cresce, costruisce officine e libera Carota dal castello del ferro.
 
-## Prova subito
+## Avvio e pubblicazione
 
-Apri `index.html` nel browser con un doppio clic. Il gioco non richiede installazioni o account. Per un salvataggio più prevedibile e per lavorare in Visual Studio Code, usa il server locale:
+Richiede Node.js 22 o successivo. In Visual Studio Code apri questa cartella, poi il terminale:
 
-1. Apri questa cartella in Visual Studio Code: **File → Apri cartella**.
-2. Se Node.js non è già installato, installa una versione recente LTS.
-3. Apri **Terminale → Nuovo terminale** ed esegui `npm run dev`.
-4. Visita **http://127.0.0.1:5173**.
+```sh
+npm ci
+npm run dev
+```
 
-Non occorre eseguire `npm install`: il progetto non usa dipendenze. I caratteri Google Fonts sono facoltativi; senza Internet vengono usati i caratteri locali.
+Apri **http://127.0.0.1:5173**. Il gioco ora usa moduli e una libreria 3D: non avviarlo facendo doppio clic sul file HTML.
+
+Repository: [Jakobs78/Frutta-e-verdura](https://github.com/Jakobs78/Frutta-e-verdura). Su Vercel importa questo repository con framework **Other**, build `npm run build`, output `dist`. `vercel.json` contiene già queste impostazioni. Le dipendenze sono incluse nel file di blocco `package-lock.json`. La libreria 3D viene incorporata nella build; non viene caricata da un CDN durante la partita. I caratteri Google Fonts sono facoltativi.
+
+Per giocare su smartphone e tablet usa il link HTTPS pubblicato da Vercel. L’indirizzo locale sul computer non è accessibile dagli altri dispositivi. Il gioco richiede un browser con WebGL 2 e accelerazione grafica attiva. Se il contesto grafico non è disponibile o viene perso, viene mostrato un messaggio con il pulsante Riprova.
 
 ## Comandi
 
-| Comando | Azione |
-| --- | --- |
-| WASD o frecce | Movimento libero in tutte le direzioni |
-| Clic / tocco sul terreno | Raggiungi il punto aggirando gli ostacoli |
-| Spazio | Salta le briciole e le muffe |
-| Q | Tira un pugno nella direzione dell’ultimo movimento |
-| E oppure clic sulla stazione | Costruisci/interagisci con una stazione vicina |
-| Esc / pulsante pausa | Pausa e guida |
-| Torna al rifugio | Ritorno rapido al sicuro |
+| Azione | PC | Smartphone / tablet | Controller standard |
+| --- | --- | --- | --- |
+| Movimento a 360° | WASD o frecce | Joypad virtuale sinistro | Levetta sinistra o croce direzionale |
+| Scegli destinazione | Clic sul terreno | Tocco sul terreno | — |
+| Pugno | Q | Pugno | X / pulsante ovest |
+| Salto | Spazio | Salta | A / pulsante sud |
+| Raccolta / stazione / prigione | E | Usa | Y / pulsante nord |
+| Pausa e guida | Esc | Pulsante pausa | Start |
+| Chiudi una scheda | Esc | × | B / pulsante est |
 
-Su smartphone sono disponibili anche pulsanti touch. La visuale dall’alto consente movimento a 360°; il salto è rappresentato con un’altezza simulata, mantenendo un mondo 2D.
+Il joypad usa la cattura del puntatore: si può tenere la direzione con un dito e premere un’azione con l’altro. Gestisce anche il rilascio fuori dal controllo e l’interruzione del tocco. I controller devono essere riconosciuti dal browser con mappatura standard; premi un pulsante sul controller per consentire al browser di rilevarlo. La funzione **Espandi** allarga il gioco alla finestra anche sui browser che non consentono lo schermo intero nativo.
 
-## Cosa c’è nella versione 0.1
+Il pulsante **Diario** nella scena mostra sempre obiettivo e passi della progressione. **Zaino** apre i materiali. **Officina** permette di consultare tutte le stazioni; costruzione e avvio manuale delle produzioni richiedono di essere nel frigorifero.
 
-- Frigorifero riconoscibile con luce, ventola, ripiani, latte, uova, vasetti, cassetto e porta aperta.
-- Fragola disegnata e animata, movimento normalizzato in diagonale, collisioni e ricerca del percorso per il movimento con clic.
-- Zona sicura con recupero della freschezza; cucina con pericolo crescente in base alla distanza dal frigo.
-- Semi e gocce da raccogliere, risorse che ricompaiono dopo 40 secondi di gioco e muffe che inseguono il personaggio.
-- Pugno con Q (o pulsante touch): colpisce davanti a Fragolina, respinge e stordisce le muffe. Tre colpi le sconfiggono; ricompaiono dopo 20 secondi di gioco. Una breve pausa di 0,45 secondi separa i pugni. Gli ostacoli bloccano i colpi.
-- Vivaio costruibile con 5 semi: genera un seme ogni 30 secondi di gioco attivo.
-- Fontana costruibile con 8 gocce: aumenta la rigenerazione al rifugio.
-- Se si esaurisce la freschezza si torna al frigorifero, perdendo il 30% dei semi disponibili (arrotondamento a favore della perdita).
-- Minimappa, missione, pausa e ripartenza con conferma.
-- Salvataggio automatico di risorse e stazioni in questo browser; al rientro si parte dal rifugio. Nessuna produzione mentre la pagina è chiusa o in pausa.
+## Crescita e zone
 
-Il salvataggio è locale: non è condiviso tra dispositivi, modalità in incognito o indirizzi diversi. Se lo spazio di archiviazione non è disponibile, il gioco continua indicando che i progressi durano solo per la sessione.
+Fragolina parte dal **livello 0**. Ogni raccolta di semi o gocce dà 3 XP, ogni azione di raccolta da un giacimento dà 5 XP, una lavorazione completata dà 10 XP. I nemici danno `18 + 8 × livello` XP. Costruzioni e potenziamenti danno esperienza. La soglia del livello successivo è `30 × (livello + 1)^1,25`, arrotondata. Livello massimo: 20.
 
-## Pubblicare su GitHub e Vercel
+Ogni livello aggiunge 10 punti di freschezza massima, 0,35 di forza e una piccola quantità di velocità. I pugni respingono e stordiscono; gli ostacoli bloccano i colpi.
 
-Non è necessario eliminare gli altri progetti. Il repository dedicato è [Jakobs78/Frutta-e-verdura](https://github.com/Jakobs78/Frutta-e-verdura).
+| Livello | Zona | Risorsa e sblocchi |
+| --- | --- | --- |
+| 0 | Cucina | Semi, gocce, primi nemici |
+| 1 | Bosco delle briciole | Alberi, legno, Falegnameria; anche Vivaio e Fontana diventano costruibili |
+| 3 | Cava di zucchero | Pietra, Spaccapietre |
+| 5 | Valle del ferro | Minerali, Fucina, castello e missione principale |
 
-1. Su Vercel seleziona **Add New → Project** e importa **Jakobs78/Frutta-e-verdura**.
-2. La configurazione `vercel.json` è già inclusa: framework **Other**, comando build `npm run build`, cartella di output `dist`. Non servono variabili d’ambiente.
-3. Seleziona **Deploy**. I successivi aggiornamenti sul branch `main` attiveranno nuovi deploy.
+La mappa misura 5200 × 2400 unità. Le recinzioni scompaiono quando si sblocca una zona; collisioni e ricerca del percorso impediscono di superarle prima del livello richiesto, anche saltando. Le risorse si raccolgono con Usa/E o colpendole. Alberi e giacimenti hanno tre raccolte da 2 unità e ricrescono dopo 35 secondi attivi. Semi e gocce ricompaiono dopo 40 secondi.
 
-Per lavorare da un altro computer, usa **Git: Clone** in Visual Studio Code con l’indirizzo `https://github.com/Jakobs78/Frutta-e-verdura.git`.
+Le muffe delle zone più lontane partono più forti. Alla ricomparsa possono aumentare di livello dopo due sconfitte o in base ai progressi di Fragolina. Le guardie della missione, una volta sconfitte, rimangono sconfitte.
 
-## Struttura
+## Officine: sblocco → costruzione → produzione → potenziamento
 
-- `index.html`: interfaccia, guida e testi.
-- `style.css`: grafica della pagina e disposizione su desktop e smartphone.
-- `game.js`: illustrazioni Canvas 2D, regole e interazioni.
-- `server.mjs`: anteprima locale, accessibile solo dal computer corrente.
-- `build.mjs`: copia i file pubblici in `dist`.
-- `vercel.json`: configurazione di pubblicazione.
+**Lo sblocco non costruisce automaticamente le stazioni.** Nel frigorifero rimangono cinque postazioni; le schede mostrano il livello richiesto e i materiali mancanti.
 
-Controlli: `npm run check`. Preparazione per pubblicazione: `npm run build`.
+| Stazione | Livello richiesto | Costo iniziale | Funzione |
+| --- | --- | --- | --- |
+| Vivaio | 1 | 5 semi | Produce semi ogni 30 secondi |
+| Fontana | 1 | 8 gocce | Accelera la rigenerazione nel frigorifero |
+| Falegnameria | 1 | 6 legno + 3 semi | 3 legno → assi |
+| Spaccapietre | 3 | 6 pietra + 3 legno | 3 pietra → blocchi |
+| Fucina | 5 | 6 pietra + 4 minerale + 2 assi | 3 minerale → lingotti |
 
-## Prossime decisioni
+Ogni stazione arriva al livello 5, pagando materiali e raggiungendo il livello di personaggio indicato. Le lavorazioni durano 12/10/8/6/4 secondi ai livelli 1/2/3/4/5. Producono 1/1/2/2/3 unità lavorate. Il Vivaio produce tanti semi quanto il proprio livello; la Fontana aumenta la rigenerazione. Una lavorazione in corso deve terminare prima di potenziare la stazione.
 
-Questa è una base single player. Prima di ampliare il gioco vanno scelti lo stile grafico definitivo, il tipo di combattimento o fuga, la struttura della progressione e i personaggi sbloccabili. Login, multiplayer, audio e salvataggi online non sono inclusi.
+## Missione principale: salva Carota
+
+La missione si attiva al livello 5. Il castello è nella Valle del ferro, a est della mappa. La porta d’ingresso è a sud. Carota si trova nella cella del cortile, dietro sbarre di ferro.
+
+1. Sconfiggi le due guardie corazzate. I progressi di ogni guardia vengono salvati.
+2. Nella Fucina costruita produci il **Seghetto per metallo**, usando **3 lingotti, 2 assi e 1 blocco**. Richiede 15 secondi attivi.
+3. Raggiungi le sbarre e premi Usa/E. Rimani vicino per 5 secondi: allontanarti interrompe il taglio.
+4. Carota viene liberato. Ottieni 150 XP e sblocchi la scheda dell’aiutante. La cella diventa attraversabile.
+
+Nessuna violenza esplicita: i nemici sono personaggi stilizzati e le sconfitte sono accompagnate da particelle. Esaurire la freschezza riporta Fragolina al rifugio con il 35% della freschezza massima. Si perde il 30% dei semi disponibili, arrotondato per difetto sulla quantità rimasta; livelli, strumenti, officine e progressi della missione vengono conservati.
+
+## Carota, aiutante permanente
+
+Dopo il salvataggio compare il pulsante **Carota**. Puoi assegnare un incarico, cambiarlo quando vuoi o chiedergli di seguirti.
+
+- **Raccolta fissa:** 2 legno, pietra o minerale ogni 25 secondi di gioco attivo. I materiali entrano nello zaino; non svuota i giacimenti destinati al giocatore.
+- **Produzione fissa:** avvia automaticamente cicli nella Falegnameria, nello Spaccapietre o nella Fucina già costruita. Consuma gli stessi 3 materiali grezzi per ciclo. Se mancano materiali, aspetta; la scheda mostra lo stato.
+- Carota lavora anche mentre Fragolina esplora fuori dal frigorifero. Non subisce danni e non perde i materiali raccolti.
+
+## Salvataggi
+
+Progressi salvati in `localStorage` **su questo browser/dispositivo**. Non c’è sincronizzazione tra dispositivi o account. Si conservano livelli, XP, materiali, stazioni, lavorazioni in corso, seghetto, guardie sconfitte, salvataggio di Carota e incarico assegnato. Le vecchie scorte e le vecchie stazioni del prototipo 0.1 vengono migrate automaticamente; la nuova crescita parte dal livello 0.
+
+Non c’è produzione o raccolta mentre la pagina è chiusa o il gioco è in pausa. I timer di lavorazione riprendono dal salvataggio. Quando la pagina perde il focus o diventa nascosta, il gioco si mette in pausa. Se lo spazio di archiviazione non è disponibile, l’interfaccia lo segnala e la partita continua per la sessione.
+
+## Verifica e struttura
+
+- `npm run check`: controllo sintassi.
+- `npm test`: prove su progressione, blocchi delle zone, raccolta, produzione, combattimento, missione, aiutante, migrazione e ripartenza.
+- `npm run build`: bundle 3D e file pubblici in `dist`.
+
+`engine.js` contiene le regole indipendenti dalla grafica; `scene3d.js` genera modelli, illuminazione e camera con Three.js; `game.js` gestisce interfaccia, joypad, controller e comandi. `index.html` e `style.css` gestiscono i layout. `server.mjs` serve esclusivamente i file pubblici compilati e ascolta sul solo computer locale.
+
+Login, multiplayer, acquisti, pubblicità, tracciamento e salvataggi online non sono inclusi. Il gioco non richiede dati personali.
